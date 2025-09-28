@@ -275,6 +275,18 @@ def handle_data(data, timestamp, modules, dont_chain, incoming, verbose):
                 data = m.execute(data)
     return data
 
+def handle_close(timestamp, modules, incoming, verbose):
+    # execute each active module on the data. If dont_chain is set, feed the
+    # output of one plugin to the following plugin. Not every plugin will
+    # necessarily modify the data, though.
+    for m in modules:
+        vprint(("> > > > close" if incoming else "< < < < close") + m.name, verbose)
+        mhandle_close = getattr(m, "mhandle_close", None)
+        if mhandle_close:
+            mhandle_close(timestamp)
+        elif hasattr(m, 'mhandle_close') and m.mhandle_close is not None:
+            m.mhandle_close(timestamp)
+
 
 def is_client_hello(sock):
     firstbytes = sock.recv(128, socket.MSG_PEEK)
@@ -506,7 +518,7 @@ def start_proxy_thread(local_socket, in_addrinfo, args, in_modules, out_modules)
         vprint("SOCKS5: client %s:%d wants to connect to: %s:%d" % (*local_socket_addrport, target_host, target_port), args.verbose)
         log(args.logfile, "SOCKS5: client %s:%d wants to connect to: %s:%d" % (*local_socket_addrport, target_host, target_port))
 
-    if not is_valid_ip4(target_host):
+    if not is_valid_ip4(target_host) and not args.use_socks5:
         try:
             ip = socket.gethostbyname(target_host)
         except socket.gaierror:
@@ -742,6 +754,7 @@ def start_proxy_thread(local_socket, in_addrinfo, args, in_modules, out_modules)
                 else:
                     vprint("Connection from local client %s:%d closed" % peer, args.verbose)
                     log(args.logfile, "Connection from local client %s:%d closed" % peer)
+                    handle_close(timestamp, out_modules, False, args.verbose)
                     remote_socket.close()
                     running = False
                     break
@@ -757,6 +770,7 @@ def start_proxy_thread(local_socket, in_addrinfo, args, in_modules, out_modules)
                 else:
                     vprint("Connection to remote server %s:%d closed" % peer, args.verbose)
                     log(args.logfile, "Connection to remote server %s:%d closed" % peer)
+                    handle_close(timestamp, in_modules, True, args.verbose)
                     local_socket.close()
                     running = False
                     break

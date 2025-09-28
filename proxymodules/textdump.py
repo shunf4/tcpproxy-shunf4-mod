@@ -61,9 +61,27 @@ class Module:
     def get_source(self, timestamp):
         return self.contexts.get(timestamp, {}).get("source") or self.source
 
+    def decide_log_filename(self, timestamp):
+        ctx = self.contexts[timestamp]
+        remote = self.get_source(timestamp) if self.incoming else self.get_destination(timestamp)
+        remote_addr = ctx["remote_hostname"] or remote[0]
+        remote_port = remote[1]
+        remote_addr = HOSTNAME_INVALID_PATTERN.sub("_", str(remote_addr))
+        if ctx["timestamp_str"] is None:
+            ctx["timestamp_str"] = ctx["timestamp"].strftime("%Y-%m-%d_%H-%M-%S-%f")
+        filename = "%s$$%s_%d_text.log" % (ctx["timestamp_str"], remote_addr, remote_port)
+        return filename
+        
+    def mhandle_close(self, timestamp):
+        if self.logdir:
+            with open(path.join(self.logdir, self.decide_log_filename(timestamp)), "ab") as f:
+                f.write(("<<<<<<<<<<< RCLOSE <<<<<<<<<<<\n" if self.incoming else ">>>>>>>>>>> LCLOSE >>>>>>>>>>>\n").encode("ascii"))
+                f.write("\n".encode("ascii"))
+        else:
+            print(("<<<<<<<<<<< RCLOSE <<<<<<<<<<<" if self.incoming else ">>>>>>>>>>> LCLOSE >>>>>>>>>>>"))
+
     def execute_ex(self, data, timestamp):
         to_print = ""
-        ctx = self.contexts[timestamp]
         to_print_b = b''
         if self.find is None:
             to_print_b = data
@@ -73,14 +91,7 @@ class Module:
         to_print = decode(to_print_b, self.codec, errors='ignore')
             
         if self.logdir:
-            remote = self.get_source(timestamp) if self.incoming else self.get_destination(timestamp)
-            remote_addr = ctx["remote_hostname"] or remote[0]
-            remote_port = remote[1]
-            remote_addr = HOSTNAME_INVALID_PATTERN.sub("_", str(remote_addr))
-            if ctx["timestamp_str"] is None:
-                ctx["timestamp_str"] = ctx["timestamp"].strftime("%Y-%m-%d_%H-%M-%S-%f")
-            filename = "%s$$%s_%d_text.log" % (ctx["timestamp_str"], remote_addr, remote_port)
-            with open(path.join(self.logdir, filename), "ab") as f:
+            with open(path.join(self.logdir, self.decide_log_filename(timestamp)), "ab") as f:
                 f.write(("<<<<<<<<<<< RECV <<<<<<<<<<<\n" if self.incoming else ">>>>>>>>>>> SEND >>>>>>>>>>>\n").encode("ascii"))
                 f.write(to_print_b)
                 f.write("\n".encode("ascii"))
