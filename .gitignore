@@ -6,3 +6,5 @@
 *.ppid
 *.vbs
 env.source
+/log/
+/logs/

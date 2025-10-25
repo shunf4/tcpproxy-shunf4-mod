@@ -36,5 +36,7 @@ if [ "$SHOULD_DECRYPT_TLS" = "1" ]; then
 	FLAG_SHOULD_DECRYPT_TLS=' -s'
 fi
 
-"$PYTHON_BIN" -u "$DIR"/tcpproxy.py -s5 -lp "$PORT" -pi 127.0.0.1 -pp 27082 -pt SOCKS5 -ac "$CA_PEM" -ak "$CA_KEY_PEM" ${FLAG_SHOULD_DECRYPT_TLS} -v -im "textdump:logdir=\"$LOG_DIR\",hexdump:wsdirection=1:logdir=\"$LOG_DIR\"" -om "textdump:logdir=\"$LOG_DIR\",hexdump:wsdirection=1:logdir=\"$LOG_DIR\"" "$@"
+OTHER_ARGS="${OTHER_ARGS-"-pi 127.0.0.1 -pp 27082 -pt SOCKS5"}"
+
+"$PYTHON_BIN" -u "$DIR"/tcpproxy.py -s5 -lp "$PORT" ${OTHER_ARGS} -ac "$CA_PEM" -ak "$CA_KEY_PEM" ${FLAG_SHOULD_DECRYPT_TLS} -v -im "textdump:logdir=\"$LOG_DIR\",hexdump:wsdirection=1:logdir=\"$LOG_DIR\"" -om "textdump:logdir=\"$LOG_DIR\",hexdump:wsdirection=1:logdir=\"$LOG_DIR\"" "$@"
 
