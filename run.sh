@@ -38,5 +38,8 @@ fi
 
 OTHER_ARGS="${OTHER_ARGS-"-pi 127.0.0.1 -pp 27082 -pt SOCKS5"}"
 
+(
+set -x
 "$PYTHON_BIN" -u "$DIR"/tcpproxy.py -s5 -lp "$PORT" ${OTHER_ARGS} -ac "$CA_PEM" -ak "$CA_KEY_PEM" ${FLAG_SHOULD_DECRYPT_TLS} -v -im "textdump:logdir=\"$LOG_DIR\",hexdump:wsdirection=1:logdir=\"$LOG_DIR\"" -om "textdump:logdir=\"$LOG_DIR\",hexdump:wsdirection=1:logdir=\"$LOG_DIR\"" "$@"
+)
 
